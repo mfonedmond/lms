@@ -1698,3 +1698,167 @@ def get_progress_distribution(progressList):
 	]
 
 	return distribution
+
+# NEW METHODS FOR SELECT ALL FUNCTIONALITY
+
+@frappe.whitelist()
+def get_users_not_in_batch(batch):
+	"""Get all users who are not already enrolled in the specified batch"""
+	
+	# Get all users who are already in the batch
+	enrolled_users = frappe.get_all(
+		"LMS Batch Enrollment",
+		filters={"batch": batch},
+		pluck="member"
+	)
+	
+	# Get all users excluding those already enrolled
+	filters = {
+		"enabled": 1,
+		"user_type": ["!=", "System User"]
+	}
+	
+	if enrolled_users:
+		filters["name"] = ["not in", enrolled_users]
+	
+	users = frappe.get_all(
+		"User",
+		filters=filters,
+		fields=["name", "full_name", "email", "user_image"],
+		order_by="full_name"
+	)
+	
+	return users
+
+
+@frappe.whitelist()
+def bulk_add_batch_students(batch, students):
+	"""Add multiple students to a batch at once"""
+	
+	if not students:
+		frappe.throw(_("No students selected"))
+	
+	if isinstance(students, str):
+		import json
+		students = json.loads(students)
+	
+	added_count = 0
+	errors = []
+	
+	for student in students:
+		try:
+			# Check if student is already enrolled
+			if frappe.db.exists("LMS Batch Enrollment", {"batch": batch, "member": student}):
+				continue
+			
+			# Create enrollment
+			enrollment = frappe.new_doc("LMS Batch Enrollment")
+			enrollment.batch = batch
+			enrollment.member = student
+			enrollment.insert(ignore_permissions=True)
+			added_count += 1
+			
+		except Exception as e:
+			user_name = frappe.db.get_value("User", student, "full_name") or student
+			errors.append(f"Failed to add {user_name}: {str(e)}")
+	
+	frappe.db.commit()
+	
+	if errors:
+		frappe.msgprint(
+			_("Added {0} students successfully. Errors: {1}").format(added_count, "; ".join(errors)),
+			title=_("Bulk Add Results"),
+			indicator="orange"
+		)
+	else:
+		frappe.msgprint(
+			_("Successfully added {0} students to the batch").format(added_count),
+			title=_("Success"),
+			indicator="green"
+		)
+	
+	return {
+		"added_count": added_count,
+		"errors": errors
+	}# NEW METHODS FOR SELECT ALL FUNCTIONALITY
+
+@frappe.whitelist()
+def get_users_not_in_batch(batch):
+	"""Get all users who are not already enrolled in the specified batch"""
+	
+	# Get all users who are already in the batch
+	enrolled_users = frappe.get_all(
+		"LMS Batch Enrollment",
+		filters={"batch": batch},
+		pluck="member"
+	)
+	
+	# Get all users excluding those already enrolled
+	filters = {
+		"enabled": 1,
+		"user_type": ["!=", "System User"]
+	}
+	
+	if enrolled_users:
+		filters["name"] = ["not in", enrolled_users]
+	
+	users = frappe.get_all(
+		"User",
+		filters=filters,
+		fields=["name", "full_name", "email", "user_image"],
+		order_by="full_name"
+	)
+	
+	return users
+
+
+@frappe.whitelist()
+def bulk_add_batch_students(batch, students):
+	"""Add multiple students to a batch at once"""
+	
+	if not students:
+		frappe.throw(_("No students selected"))
+	
+	if isinstance(students, str):
+		import json
+		students = json.loads(students)
+	
+	added_count = 0
+	errors = []
+	
+	for student in students:
+		try:
+			# Check if student is already enrolled
+			if frappe.db.exists("LMS Batch Enrollment", {"batch": batch, "member": student}):
+				continue
+			
+			# Create enrollment
+			enrollment = frappe.new_doc("LMS Batch Enrollment")
+			enrollment.batch = batch
+			enrollment.member = student
+			enrollment.insert(ignore_permissions=True)
+			added_count += 1
+			
+		except Exception as e:
+			user_name = frappe.db.get_value("User", student, "full_name") or student
+			errors.append(f"Failed to add {user_name}: {str(e)}")
+	
+	frappe.db.commit()
+	
+	if errors:
+		frappe.msgprint(
+			_("Added {0} students successfully. Errors: {1}").format(added_count, "; ".join(errors)),
+			title=_("Bulk Add Results"),
+			indicator="orange"
+		)
+	else:
+		frappe.msgprint(
+			_("Successfully added {0} students to the batch").format(added_count),
+			title=_("Success"),
+			indicator="green"
+		)
+	
+	return {
+		"added_count": added_count,
+		"errors": errors
+	}
